@@ -24,6 +24,11 @@ export type TechStackItem = {
   kind: string
 }
 
+export type AboutHighlight = {
+  label: string
+  value: string
+}
+
 export type EducationItem = {
   school: string
   credential: string
@@ -50,6 +55,7 @@ export type PortfolioData = {
   stats: Stat[]
   skills: Skill[]
   techStack: TechStackItem[]
+  aboutHighlights: AboutHighlight[]
   education: EducationItem[]
   projects: Project[]
   contacts: ContactLink[]
@@ -73,14 +79,14 @@ export const portfolioData: PortfolioData = {
       hint: 'Shipped across product, brand, and portfolio work.',
     },
     {
-      label: 'Launch partners',
-      value: '14',
-      hint: 'Startups and in-house teams supported from concept to release.',
+      label: 'Primary focus',
+      value: 'WEB',
+      hint: 'React JS, TypeScript, and responsive front-end implementation.',
     },
     {
-      label: 'Design systems',
-      value: '05',
-      hint: 'Reusable UI foundations built for scale and handoff speed.',
+      label: 'Mobile focus',
+      value: 'APP',
+      hint: 'React Native and Flutter builds for mobile-first products.',
     },
   ],
   skills: [
@@ -102,14 +108,28 @@ export const portfolioData: PortfolioData = {
     },
   ],
   techStack: [
-    { name: 'Figma', kind: 'Design' },
-    { name: 'React', kind: 'UI' },
+    { name: 'React JS', kind: 'Frontend' },
+    { name: 'React Native', kind: 'Mobile' },
+    { name: 'Flutter', kind: 'Cross-platform' },
     { name: 'TypeScript', kind: 'Language' },
-    { name: 'Tailwind', kind: 'Styling' },
-    { name: 'Framer', kind: 'Prototype' },
-    { name: 'Storybook', kind: 'System' },
-    { name: 'Notion', kind: 'Ops' },
-    { name: 'GitHub', kind: 'Delivery' },
+    { name: 'Node JS', kind: 'Runtime' },
+    { name: 'Express JS', kind: 'Backend' },
+    { name: 'MongoDB', kind: 'Database' },
+    { name: 'GitHub', kind: 'Version Control' },
+  ],
+  aboutHighlights: [
+    {
+      label: 'Stack',
+      value: 'React JS, React Native, Flutter, Node JS',
+    },
+    {
+      label: 'Build style',
+      value: 'Responsive UI, clean structure, and maintainable front-end code',
+    },
+    {
+      label: 'Current goal',
+      value: 'Looking for freelance work, internships, and junior dev opportunities',
+    },
   ],
   education: [
     {
@@ -159,9 +179,9 @@ export const portfolioData: PortfolioData = {
       href: 'https://www.linkedin.com/',
     },
     {
-      label: 'Behance',
-      value: 'behance.net/mirasol',
-      href: 'https://www.behance.net/',
+      label: 'GitHub',
+      value: 'github.com/mrccastillo',
+      href: 'https://github.com/mrccastillo',
     },
   ],
 }

@@ -1,72 +1,140 @@
-import { useEffect, useRef, useState, type CSSProperties, type ElementType, type MouseEvent, type ReactNode } from 'react'
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
-import { portfolioData } from './portfolio'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ElementType,
+  type ReactNode,
+} from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { portfolioData } from "./portfolio";
 
-const HOME_PATH = '/'
-const PROJECTS_PATH = '/projects'
-const [headlineStat, ...supportingStats] = portfolioData.stats
-const [featuredProject, ...moreProjects] = portfolioData.projects
+const HOME_PATH = "/";
+const PROJECTS_PATH = "/projects";
+const HOME_HREF = "./";
+const PROJECTS_HREF = "./#/projects";
+const [headlineStat, ...supportingStats] = portfolioData.stats;
+const [featuredProject, ...moreProjects] = portfolioData.projects;
 
 function App() {
-  const [pathname, setPathname] = useState(() => getCurrentPath())
+  const [pathname, setPathname] = useState(() => getCurrentPath());
+  const [pendingAnchor, setPendingAnchor] = useState<string | null>(() =>
+    getCurrentAnchor(),
+  );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const previousPathname = useRef(pathname);
+  const lastHandledAnchor = useRef<string | null>(null);
+  const primaryNavItems = getPrimaryNavItems(pathname);
 
   useEffect(() => {
-    const handlePopState = () => setPathname(getCurrentPath())
+    const syncLocation = () => {
+      setPathname(getCurrentPath());
+      setPendingAnchor(getCurrentAnchor());
+    };
 
-    window.addEventListener('popstate', handlePopState)
+    syncLocation();
+    window.addEventListener("popstate", syncLocation);
+    window.addEventListener("hashchange", syncLocation);
 
     return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
-  }, [])
+      window.removeEventListener("popstate", syncLocation);
+      window.removeEventListener("hashchange", syncLocation);
+    };
+  }, []);
 
-  const handleInternalNavigation = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+  useEffect(() => {
     if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.altKey ||
-      event.shiftKey ||
-      typeof window === 'undefined'
+      pathname === previousPathname.current ||
+      typeof window === "undefined"
     ) {
-      return
+      return;
     }
 
-    const url = new URL(href, window.location.origin)
-    if (url.origin !== window.location.origin) {
-      return
+    previousPathname.current = pathname;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined"
+    ) {
+      return;
     }
 
-    event.preventDefault()
-
-    const nextPath = normalizePath(url.pathname)
-    const nextLocation = `${nextPath}${url.search}${url.hash}`
-    const currentPath = getCurrentPath()
-
-    if (nextLocation !== `${currentPath}${window.location.search}${window.location.hash}`) {
-      window.history.pushState({}, '', nextLocation)
+    if (!pendingAnchor || pathname !== HOME_PATH) {
+      lastHandledAnchor.current = null;
+      return;
     }
 
-    setPathname(nextPath)
-
-    if (nextPath !== currentPath || !url.hash) {
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    const anchorKey = `${pathname}#${pendingAnchor}`;
+    if (lastHandledAnchor.current === anchorKey) {
+      return;
     }
 
-    if (url.hash) {
-      window.requestAnimationFrame(() => {
-        document.querySelector(url.hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
+    lastHandledAnchor.current = anchorKey;
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(pendingAnchor)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [pathname, pendingAnchor]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
     }
-  }
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+
+    if (isMobileMenuOpen) {
+      body.style.overflow = "hidden";
+    } else {
+      body.style.overflow = previousOverflow;
+    }
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen || typeof window === "undefined") {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <div className="page-shell">
       <main
-        className="w-full flex min-h-screen flex-col gap-5 py-4"
-        style={{ paddingInline: 'clamp(0.75rem, 8vw, 20rem)' }}
+        className="page-main w-full flex min-h-screen flex-col gap-5 py-4"
       >
-        <MotionBlock as="header" className="topbar animate-rise" eager delay={0.04} parallax={false}>
+        <MotionBlock
+          as="header"
+          className="topbar animate-rise"
+          eager
+          delay={0.04}
+          parallax={false}
+        >
           <div className="topbar__identity">
             <div className="monogram">MC</div>
             <div>
@@ -77,103 +145,614 @@ function App() {
 
           <div className="topbar__actions">
             <nav className="topbar__nav">
-              {pathname === PROJECTS_PATH ? (
-                <>
-                  <AppNavLink href={HOME_PATH} className="topbar__pill" onNavigate={handleInternalNavigation}>
-                    Home
-                  </AppNavLink>
-                  <AppNavLink href={PROJECTS_PATH} className="topbar__pill" onNavigate={handleInternalNavigation}>
-                    Projects
-                  </AppNavLink>
-                  <AppNavLink href="/#contact" className="topbar__pill" onNavigate={handleInternalNavigation}>
-                    Contact
-                  </AppNavLink>
-                </>
-              ) : (
-                <>
-                  <a href="#work" className="topbar__pill">
-                    Works
-                  </a>
-                  <AppNavLink href={PROJECTS_PATH} className="topbar__pill" onNavigate={handleInternalNavigation}>
-                    Projects
-                  </AppNavLink>
-                  <a href="#services" className="topbar__pill">
-                    Service
-                  </a>
-                  <a href="#about" className="topbar__pill">
-                    About
-                  </a>
-                  <a href="#contact" className="topbar__pill">
-                    Contact
-                  </a>
-                </>
-              )}
+              {primaryNavItems.map((item) => (
+                <AppNavLink key={item.href} href={item.href} className="topbar__pill">
+                  {item.label}
+                </AppNavLink>
+              ))}
             </nav>
+            <button
+              type="button"
+              className="topbar__menu-button"
+              aria-label={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
           </div>
         </MotionBlock>
 
+        <AnimatePresence>
+          {isMobileMenuOpen ? (
+            <div className="mobile-nav" aria-hidden={!isMobileMenuOpen}>
+              <motion.button
+                type="button"
+                className="mobile-nav__backdrop"
+                aria-label="Close navigation"
+                onClick={() => setIsMobileMenuOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.24, ease: "easeOut" }}
+              />
+              <motion.aside
+                id="mobile-nav-drawer"
+                className="mobile-nav__panel"
+                initial={{ x: "100%", opacity: 0.9 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "100%", opacity: 0.92 }}
+                transition={{ duration: 0.34, ease: [0.22, 0.9, 0.2, 1] }}
+              >
+                <div className="mobile-nav__header">
+                  <p className="mobile-nav__eyebrow">Navigation</p>
+                  <button
+                    type="button"
+                    className="mobile-nav__close"
+                    aria-label="Close navigation"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <span />
+                    <span />
+                  </button>
+                </div>
+                <nav className="mobile-nav__links">
+                  {primaryNavItems.map((item) => (
+                    <AppNavLink
+                      key={item.href}
+                      href={item.href}
+                      className="mobile-nav__link"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </AppNavLink>
+                  ))}
+                </nav>
+              </motion.aside>
+            </div>
+          ) : null}
+        </AnimatePresence>
+
         {pathname === PROJECTS_PATH ? (
-          <ProjectsPage onNavigate={handleInternalNavigation} />
+          <ProjectsPage />
         ) : (
           <>
-        <section className="hero-grid">
-          <MotionBlock
-            as="article"
-            className="poster-panel poster-panel--light dot-field animate-rise"
-            eager
-            delay={0.04}
-            parallax={false}
-            yDistance={18}
-            scaleAmount={0.015}
-          >
-            <div className="poster-panel__inner">
-              <div className="section-kicker">
-                <span>Available for work</span>
-                <span>Front-end</span>
-                <span>Mobile-first</span>
-              </div>
-
-              <p className="hero-code">MLJC / 2026 / PORTFOLIO</p>
-              <MotionLayer
-                as="h1"
-                className="hero-title parallax-layer"
+            <section className="hero-grid">
+              <MotionBlock
+                as="article"
+                className="poster-panel poster-panel--light dot-field animate-rise"
+                eager
+                delay={0.04}
                 parallax={false}
-                yDistance={36}
-                scaleAmount={0.02}
+                yDistance={18}
+                scaleAmount={0.015}
               >
-                BUILD
-                <br />
-                WEB + MOBILE
-                <br />
-                PRODUCTS
-              </MotionLayer>
+                <div className="poster-panel__inner">
+                  <div className="section-kicker">
+                    <span>Available for work</span>
+                    <span>Front-end</span>
+                    <span>Mobile-first</span>
+                  </div>
 
-              <div className="hero-caption">
-                <p className="hero-caption__small">Freelance developer</p>
-                <p className="hero-caption__small">React / TypeScript / Responsive UI</p>
+                  <p className="hero-code">MLJC / 2026 / PORTFOLIO</p>
+                      <MotionLayer
+                        as="h1"
+                        className="hero-title parallax-layer"
+                        parallax={false}
+                        yDistance={36}
+                        scaleAmount={0.02}
+                      >
+                        BUILD
+                        <br />
+                        WEB + MOBILE
+                        <br />
+                        PRODUCTS
+                      </MotionLayer>
+
+                      <div className="hero-caption">
+                    <p className="hero-caption__small">Freelance developer</p>
+                    <p className="hero-caption__small">
+                      React / TypeScript / Responsive UI
+                    </p>
+                  </div>
+
+                  <div className="hero-lower">
+                    <MotionLayer
+                      as="div"
+                      className="hero-stamp parallax-layer"
+                      parallax={false}
+                      yDistance={22}
+                      xDistance={8}
+                      rotateDistance={-0.8}
+                    >
+                      <span>{portfolioData.profile.yearsExperience}</span>
+                      <span>
+                        Responsive builds / interface systems / production
+                        delivery
+                      </span>
+                    </MotionLayer>
+
+                    <div className="hero-summary">
+                      <p>
+                        I build clean, readable, launch-ready interfaces for web
+                        and mobile products with a focus on structure,
+                        usability, and front-end implementation.
+                      </p>
+                      <div className="hero-actions">
+                        <a
+                          href={portfolioData.contacts[0].href}
+                          className="action-link action-link-inverse"
+                        >
+                          Email
+                          <ArrowUpRightIcon />
+                        </a>
+                        <a
+                          href={portfolioData.contacts[1].href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="action-link"
+                        >
+                          LinkedIn
+                          <ArrowUpRightIcon />
+                        </a>
+                      </div>
+                      <div className="hero-notes">
+                        <article className="hero-note">
+                          <p className="hero-note__label">Front-end</p>
+                          <p className="hero-note__value">React JS / TypeScript</p>
+                        </article>
+                        <article className="hero-note">
+                          <p className="hero-note__label">Mobile</p>
+                          <p className="hero-note__value">React Native / Flutter</p>
+                        </article>
+                        <article className="hero-note">
+                          <p className="hero-note__label">Workflow</p>
+                          <p className="hero-note__value">Responsive UI / Clean structure</p>
+                        </article>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </MotionBlock>
+
+              <MotionBlock
+                as="aside"
+                className="hero-side animate-rise"
+                eager
+                delay={0.08}
+                parallax={false}
+                yDistance={24}
+                scaleAmount={0.012}
+              >
+                <article className="poster-panel poster-panel--dark">
+                  <div className="poster-panel__bar">
+                    <span>Profile sheet</span>
+                    <span>{portfolioData.profile.location}</span>
+                  </div>
+                  <div className="poster-panel__inner">
+                    <div className="profile-card">
+                      <MotionLayer
+                        as="div"
+                        className="profile-card__art parallax-layer"
+                        parallax={false}
+                        yDistance={26}
+                        xDistance={10}
+                        rotateDistance={1.1}
+                      >
+                        <img
+                          src="./marc-2.jpg"
+                          alt="Portrait of Marc Lowel J. Castillo"
+                          className="profile-card__photo"
+                        />
+                      </MotionLayer>
+                      <div className="profile-card__body">
+                        <p className="profile-card__label">Current focus</p>
+                        <h2 className="profile-card__title">
+                          {portfolioData.profile.role}
+                        </h2>
+                        <p className="profile-card__text">
+                          React builds, mobile-ready UI, and maintainable
+                          front-end implementation for product teams and
+                          freelance clients.
+                        </p>
+                        <div className="profile-card__actions">
+                          <a
+                            href="./marc-cv.pdf"
+                            download
+                            className="action-link"
+                          >
+                            Download CV
+                            <ArrowUpRightIcon />
+                          </a>
+                          <a
+                            href={portfolioData.contacts[2].href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="action-link action-link-outline-light"
+                          >
+                            {portfolioData.contacts[2].label}
+                            <ArrowUpRightIcon />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="meta-grid">
+                      <MetaBlock label="Availability" value="Open" />
+                      <MetaBlock label="Work" value="Client commissions" />
+                      <MetaBlock label="Primary" value="Web + Mobile" />
+                      <MetaBlock label="Base" value="Manila" />
+                    </div>
+                  </div>
+                </article>
+
+                <article className="poster-panel poster-panel--accent">
+                  <div className="poster-panel__bar">
+                    <span>Snapshot</span>
+                    <span>{headlineStat.label}</span>
+                  </div>
+                  <div className="stat-split">
+                    <p className="stat-split__number">{headlineStat.value}</p>
+                    <p className="stat-split__text">{headlineStat.hint}</p>
+                  </div>
+                </article>
+              </MotionBlock>
+            </section>
+
+            <MotionBlock
+              as="section"
+              className="marquee-panel animate-rise"
+              eager
+              delay={0.04}
+              parallax={false}
+              yDistance={10}
+            >
+              <div className="marquee-panel__inner">
+                <div className="ticker-track">
+                  <span>Responsive Builds</span>
+                  <span>Web Applications</span>
+                  <span>Mobile Interfaces</span>
+                  <span>React + TypeScript</span>
+                  <span>Freelance Developer</span>
+                  <span>Responsive Builds</span>
+                  <span>Web Applications</span>
+                  <span>Mobile Interfaces</span>
+                </div>
+              </div>
+            </MotionBlock>
+
+            <section id="work" className="editorial-grid">
+              <MotionBlock
+                as="article"
+                className="poster-panel poster-panel--dark animate-rise"
+                delay={0.04}
+                yDistance={18}
+                scaleAmount={0.01}
+              >
+                <div className="poster-panel__bar">
+                  <span>Featured project</span>
+                  <span>Case study</span>
+                </div>
+                <div className="feature-grid">
+                  <div className="feature-copy">
+                    <p className="feature-copy__index">01</p>
+                    <h2 className="feature-copy__title">
+                      {featuredProject.name}
+                    </h2>
+                    <p className="feature-copy__text">
+                      {featuredProject.summary}
+                    </p>
+                    <div className="feature-tags">
+                      {featuredProject.tags.map((tag) => (
+                        <span key={tag} className="outline-chip">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="feature-impact">
+                    <div className="impact-card">
+                      <p className="impact-card__label">Project impact</p>
+                      <p className="impact-card__text">
+                        {featuredProject.impact}
+                      </p>
+                    </div>
+
+                    <div className="stacked-preview">
+                      <MotionLayer
+                        as="div"
+                        className="stacked-preview__card stacked-preview__card--one parallax-layer"
+                        yDistance={18}
+                        xDistance={8}
+                        rotateDistance={-2.5}
+                      />
+                      <MotionLayer
+                        as="div"
+                        className="stacked-preview__card stacked-preview__card--two parallax-layer"
+                        yDistance={28}
+                        xDistance={12}
+                        rotateDistance={3}
+                      />
+                      <MotionLayer
+                        as="div"
+                        className="stacked-preview__card stacked-preview__card--three parallax-layer"
+                        yDistance={22}
+                        xDistance={10}
+                        rotateDistance={-2}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </MotionBlock>
+
+              <div className="editorial-rail">
+                <MotionBlock
+                  as="article"
+                  className="poster-panel poster-panel--light animate-rise"
+                  delay={0.06}
+                  yDistance={24}
+                >
+                  <div className="poster-panel__bar poster-panel__bar--light">
+                    <span>Current focus</span>
+                  </div>
+                  <div className="rail-list">
+                    {supportingStats.map((stat) => (
+                      <div key={stat.label} className="rail-stat">
+                        <p className="rail-stat__label">{stat.label}</p>
+                        <div className="rail-stat__row">
+                          <p className="rail-stat__value">{stat.value}</p>
+                          <p className="rail-stat__hint">{stat.hint}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </MotionBlock>
+
+                <MotionBlock
+                  as="article"
+                  className="poster-panel poster-panel--light animate-rise"
+                  delay={0.1}
+                  yDistance={28}
+                >
+                  <div className="poster-panel__bar poster-panel__bar--light">
+                    <span>More work</span>
+                    <AppNavLink href={PROJECTS_HREF} className="panel-link">
+                      View all
+                    </AppNavLink>
+                  </div>
+                  <div className="work-list">
+                    {moreProjects.map((project, index) => (
+                      <article key={project.name} className="work-list__item">
+                        <p className="work-list__index">0{index + 2}</p>
+                        <div>
+                          <h3 className="work-list__title">{project.name}</h3>
+                          <p className="work-list__text">{project.summary}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </MotionBlock>
+              </div>
+            </section>
+
+            <section id="services" className="services-grid">
+              <MotionBlock
+                as="article"
+                className="poster-panel poster-panel--light dot-field animate-rise"
+                delay={0.04}
+                yDistance={16}
+                scaleAmount={0.01}
+              >
+                <div className="poster-panel__bar poster-panel__bar--light">
+                  <span>Service index</span>
+                  <span>What I do</span>
+                </div>
+                <div className="service-stage">
+                  <div className="service-stage__intro">
+                    <p className="service-stage__eyebrow">
+                      Planning to production
+                    </p>
+                    <div className="service-stage__summary-block">
+                      <MotionLayer
+                        as="h2"
+                        className="service-stage__title parallax-layer"
+                        yDistance={16}
+                      >
+                        Strategy, interface design, prototypes, and front-end
+                        delivery.
+                      </MotionLayer>
+                    </div>
+                  </div>
+
+                  <div className="service-index__frame">
+                    <div className="service-index__grid">
+                      {portfolioData.skills.map((skill, index) => (
+                        <article
+                          key={skill.name}
+                          className="service-index__card"
+                        >
+                          <div className="service-index__top">
+                            <p className="service-index__count">0{index + 1}</p>
+                          </div>
+                          <div className="service-index__body">
+                            <h3 className="service-index__title">
+                              {skill.name}
+                            </h3>
+                            <p className="service-index__text">
+                              {skill.summary}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </MotionBlock>
+
+              <MotionBlock
+                as="article"
+                id="about"
+                className="poster-panel poster-panel--dark animate-rise"
+                delay={0.08}
+                yDistance={20}
+                scaleAmount={0.012}
+              >
+                <div className="poster-panel__bar">
+                  <span>About</span>
+                  <span>Developer summary</span>
+                </div>
+                <div className="about-sheet">
+                  <div className="about-sheet__masthead">
+                    <p className="about-sheet__eyebrow">
+                      Build first / refine hard / ship clean
+                    </p>
+                  </div>
+
+                  <div className="about-sheet__layout">
+                    <div className="about-sheet__main">
+                      <MotionLayer
+                        as="h2"
+                        className="about-sheet__title parallax-layer"
+                        yDistance={20}
+                        scaleAmount={0.01}
+                      >
+                        Responsive product screens built cleanly and shipped
+                        with care.
+                      </MotionLayer>
+                      <p className="about-sheet__lead">
+                        {portfolioData.profile.summary}
+                      </p>
+                    </div>
+
+                    <div className="about-sheet__rail">
+                      <MotionLayer
+                        as="div"
+                        className="about-sheet__metrics parallax-layer"
+                        yDistance={16}
+                        xDistance={10}
+                      >
+                        {portfolioData.aboutHighlights.map((item) => (
+                          <AboutMetric
+                            key={item.label}
+                            label={item.label}
+                            value={item.value}
+                          />
+                        ))}
+                      </MotionLayer>
+                    </div>
+                  </div>
+                </div>
+              </MotionBlock>
+            </section>
+
+            <MotionBlock
+              as="section"
+              id="education"
+              className="poster-panel poster-panel--light animate-rise"
+              delay={0.04}
+              yDistance={14}
+            >
+              <div className="poster-panel__bar poster-panel__bar--light">
+                <span>Education</span>
+                <span>Learning path</span>
               </div>
 
-              <div className="hero-lower">
-                <MotionLayer
-                  as="div"
-                  className="hero-stamp parallax-layer"
-                  parallax={false}
-                  yDistance={22}
-                  xDistance={8}
-                  rotateDistance={-0.8}
-                >
-                  <span>{portfolioData.profile.yearsExperience}</span>
-                  <span>Responsive builds / interface systems / production delivery</span>
-                </MotionLayer>
-
-                <div className="hero-summary">
-                  <p>
-                    I build clean, readable, launch-ready interfaces for web and mobile products
-                    with a focus on structure, usability, and front-end implementation.
+              <div className="education-panel">
+                <div className="education-panel__hero">
+                  <p className="education-panel__eyebrow">
+                    Study / practice / front-end craft
                   </p>
-                  <div className="hero-actions">
-                    <a href={portfolioData.contacts[0].href} className="action-link action-link-inverse">
-                      Email
+                  <LayeredSectionTitle text="EDUCATION" />
+                  <p className="education-panel__summary">
+                    Academic training plus hands-on front-end practice focused
+                    on shipping responsive interfaces that stay clean in
+                    production.
+                  </p>
+                </div>
+
+                <div className="education-panel__list">
+                  {portfolioData.education.map((item) => (
+                    <article
+                      key={`${item.school}-${item.credential}`}
+                      className="education-card"
+                    >
+                      <div className="education-card__meta">
+                        <p className="education-card__period">{item.period}</p>
+                        <p className="education-card__school">{item.school}</p>
+                      </div>
+                      <div className="education-card__body">
+                        <h3 className="education-card__credential">
+                          {item.credential}
+                        </h3>
+                        <p className="education-card__location">
+                          {item.location}
+                        </p>
+                        <p className="education-card__summary">
+                          {item.summary}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </MotionBlock>
+
+            <section className="lower-grid">
+              <MotionBlock
+                as="article"
+                className="poster-panel poster-panel--light animate-rise"
+                delay={0.04}
+                yDistance={14}
+              >
+                <div className="poster-panel__bar poster-panel__bar--light">
+                  <span>Toolbox</span>
+                  <span>Tech stack</span>
+                </div>
+                <div className="stack-grid">
+                  {portfolioData.techStack.map((item) => (
+                    <article key={item.name} className="stack-grid__item">
+                      <p className="stack-grid__name">{item.name}</p>
+                      <p className="stack-grid__kind">{item.kind}</p>
+                    </article>
+                  ))}
+                </div>
+              </MotionBlock>
+
+              <MotionBlock
+                as="article"
+                id="contact"
+                className="poster-panel poster-panel--accent animate-rise"
+                delay={0.08}
+                yDistance={18}
+                scaleAmount={0.014}
+              >
+                <div className="poster-panel__bar poster-panel__bar--light">
+                  <span>Contact</span>
+                  <span>Get in touch</span>
+                </div>
+                <div className="contact-panel">
+                  <MotionLayer
+                    as="h2"
+                    className="contact-panel__title parallax-layer"
+                    yDistance={26}
+                  >
+                    READY TO BUILD TOGETHER?
+                  </MotionLayer>
+                  <p className="contact-panel__text">
+                    Available for freelance work involving React, front-end
+                    systems, responsive product UI, and mobile-focused
+                    implementation.
+                  </p>
+                  <div className="contact-panel__actions">
+                    <a
+                      href={portfolioData.contacts[0].href}
+                      className="action-link action-link-inverse"
+                    >
+                      {portfolioData.contacts[0].label}
                       <ArrowUpRightIcon />
                     </a>
                     <a
@@ -182,447 +761,65 @@ function App() {
                       rel="noreferrer"
                       className="action-link"
                     >
-                      LinkedIn
+                      {portfolioData.contacts[1].label}
                       <ArrowUpRightIcon />
                     </a>
                   </div>
                 </div>
-              </div>
-            </div>
-          </MotionBlock>
-
-          <MotionBlock
-            as="aside"
-            className="hero-side animate-rise"
-            eager
-            delay={0.08}
-            parallax={false}
-            yDistance={24}
-            scaleAmount={0.012}
-          >
-            <article className="poster-panel poster-panel--dark">
-              <div className="poster-panel__bar">
-                <span>Profile sheet</span>
-                <span>{portfolioData.profile.location}</span>
-              </div>
-              <div className="poster-panel__inner">
-                <div className="profile-card">
-                  <MotionLayer
-                    as="div"
-                    className="profile-card__art parallax-layer"
-                    parallax={false}
-                    yDistance={26}
-                    xDistance={10}
-                    rotateDistance={1.1}
-                  >
-                    <img
-                      src="/marc.jpg"
-                      alt="Portrait of Marc Lowel J. Castillo"
-                      className="profile-card__photo"
-                    />
-                  </MotionLayer>
-                  <div className="profile-card__body">
-                    <p className="profile-card__label">Current focus</p>
-                    <h2 className="profile-card__title">{portfolioData.profile.role}</h2>
-                    <p className="profile-card__text">
-                      React builds, mobile-ready UI, and maintainable front-end implementation for
-                      product teams and freelance clients.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="meta-grid">
-                  <MetaBlock label="Availability" value="Open" />
-                  <MetaBlock label="Type" value="Freelance" />
-                  <MetaBlock label="Primary" value="Web + Mobile" />
-                  <MetaBlock label="Base" value="Manila" />
-                </div>
-              </div>
-            </article>
-
-            <article className="poster-panel poster-panel--accent">
-              <div className="poster-panel__bar">
-                <span>Snapshot</span>
-                <span>{headlineStat.label}</span>
-              </div>
-              <div className="stat-split">
-                <p className="stat-split__number">{headlineStat.value}</p>
-                <p className="stat-split__text">{headlineStat.hint}</p>
-              </div>
-            </article>
-          </MotionBlock>
-        </section>
-
-        <MotionBlock
-          as="section"
-          className="marquee-panel animate-rise"
-          eager
-          delay={0.04}
-          parallax={false}
-          yDistance={10}
-        >
-          <div className="marquee-panel__inner">
-            <div className="ticker-track">
-              <span>Responsive Builds</span>
-              <span>Web Applications</span>
-              <span>Mobile Interfaces</span>
-              <span>React + TypeScript</span>
-              <span>Freelance Developer</span>
-              <span>Responsive Builds</span>
-              <span>Web Applications</span>
-              <span>Mobile Interfaces</span>
-            </div>
-          </div>
-        </MotionBlock>
-
-        <section id="work" className="editorial-grid">
-          <MotionBlock
-            as="article"
-            className="poster-panel poster-panel--dark animate-rise"
-            delay={0.04}
-            yDistance={18}
-            scaleAmount={0.01}
-          >
-            <div className="poster-panel__bar">
-              <span>Featured project</span>
-              <span>Case study</span>
-            </div>
-            <div className="feature-grid">
-              <div className="feature-copy">
-                <p className="feature-copy__index">01</p>
-                <h2 className="feature-copy__title">{featuredProject.name}</h2>
-                <p className="feature-copy__text">{featuredProject.summary}</p>
-                <div className="feature-tags">
-                  {featuredProject.tags.map((tag) => (
-                    <span key={tag} className="outline-chip">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="feature-impact">
-                <div className="impact-card">
-                  <p className="impact-card__label">Project impact</p>
-                  <p className="impact-card__text">{featuredProject.impact}</p>
-                </div>
-
-                <div className="stacked-preview">
-                  <MotionLayer
-                    as="div"
-                    className="stacked-preview__card stacked-preview__card--one parallax-layer"
-                    yDistance={18}
-                    xDistance={8}
-                    rotateDistance={-2.5}
-                  />
-                  <MotionLayer
-                    as="div"
-                    className="stacked-preview__card stacked-preview__card--two parallax-layer"
-                    yDistance={28}
-                    xDistance={12}
-                    rotateDistance={3}
-                  />
-                  <MotionLayer
-                    as="div"
-                    className="stacked-preview__card stacked-preview__card--three parallax-layer"
-                    yDistance={22}
-                    xDistance={10}
-                    rotateDistance={-2}
-                  />
-                </div>
-              </div>
-            </div>
-          </MotionBlock>
-
-          <div className="editorial-rail">
-            <MotionBlock
-              as="article"
-              className="poster-panel poster-panel--light animate-rise"
-              delay={0.06}
-              yDistance={24}
-            >
-              <div className="poster-panel__bar poster-panel__bar--light">
-                <span>Selected numbers</span>
-              </div>
-              <div className="rail-list">
-                {supportingStats.map((stat) => (
-                  <div key={stat.label} className="rail-stat">
-                    <p className="rail-stat__label">{stat.label}</p>
-                    <div className="rail-stat__row">
-                      <p className="rail-stat__value">{stat.value}</p>
-                      <p className="rail-stat__hint">{stat.hint}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </MotionBlock>
-
-            <MotionBlock
-              as="article"
-              className="poster-panel poster-panel--light animate-rise"
-              delay={0.1}
-              yDistance={28}
-            >
-              <div className="poster-panel__bar poster-panel__bar--light">
-                <span>More work</span>
-                <AppNavLink href={PROJECTS_PATH} className="panel-link" onNavigate={handleInternalNavigation}>
-                  View all
-                </AppNavLink>
-              </div>
-              <div className="work-list">
-                {moreProjects.map((project, index) => (
-                  <article key={project.name} className="work-list__item">
-                    <p className="work-list__index">0{index + 2}</p>
-                    <div>
-                      <h3 className="work-list__title">{project.name}</h3>
-                      <p className="work-list__text">{project.summary}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </MotionBlock>
-          </div>
-        </section>
-
-        <section id="services" className="services-grid">
-          <MotionBlock
-            as="article"
-            className="poster-panel poster-panel--light dot-field animate-rise"
-            delay={0.04}
-            yDistance={16}
-            scaleAmount={0.01}
-          >
-            <div className="poster-panel__bar poster-panel__bar--light">
-              <span>Service index</span>
-              <span>What I do</span>
-            </div>
-            <div className="service-stage">
-              <div className="service-stage__intro">
-                <p className="service-stage__eyebrow">Planning to production</p>
-                <div className="service-stage__summary-block">
-                  <MotionLayer as="h2" className="service-stage__title parallax-layer" yDistance={16}>
-                    Strategy, interface design, prototypes, and front-end delivery.
-                  </MotionLayer>
-                </div>
-              </div>
-
-              <div className="service-index__frame">
-                <div className="service-index__grid">
-                  {portfolioData.skills.map((skill, index) => (
-                    <article key={skill.name} className="service-index__card">
-                      <div className="service-index__top">
-                        <p className="service-index__count">0{index + 1}</p>
-                      </div>
-                      <div className="service-index__body">
-                        <h3 className="service-index__title">{skill.name}</h3>
-                        <p className="service-index__text">{skill.summary}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </MotionBlock>
-
-          <MotionBlock
-            as="article"
-            id="about"
-            className="poster-panel poster-panel--dark animate-rise"
-            delay={0.08}
-            yDistance={20}
-            scaleAmount={0.012}
-          >
-            <div className="poster-panel__bar">
-              <span>About</span>
-              <span>Developer summary</span>
-            </div>
-            <div className="about-sheet">
-              <div className="about-sheet__masthead">
-                <p className="about-sheet__eyebrow">Build first / refine hard / ship clean</p>
-              </div>
-
-              <div className="about-sheet__layout">
-                <div className="about-sheet__main">
-                  <MotionLayer
-                    as="h2"
-                    className="about-sheet__title parallax-layer"
-                    yDistance={20}
-                    scaleAmount={0.01}
-                  >
-                    Responsive product screens built cleanly and shipped with care.
-                  </MotionLayer>
-                  <p className="about-sheet__lead">{portfolioData.profile.summary}</p>
-                </div>
-
-                <div className="about-sheet__rail">
-                  <MotionLayer
-                    as="div"
-                    className="about-sheet__metrics parallax-layer"
-                    yDistance={16}
-                    xDistance={10}
-                  >
-                    <AboutMetric label="Availability" value={portfolioData.profile.availability} />
-                    <AboutMetric label="Experience" value={portfolioData.profile.yearsExperience} />
-                    <AboutMetric label="Location" value={portfolioData.profile.location} />
-                  </MotionLayer>
-                </div>
-              </div>
-            </div>
-          </MotionBlock>
-        </section>
-
-        <MotionBlock
-          as="section"
-          id="education"
-          className="poster-panel poster-panel--light animate-rise"
-          delay={0.04}
-          yDistance={14}
-        >
-          <div className="poster-panel__bar poster-panel__bar--light">
-            <span>Education</span>
-            <span>Learning path</span>
-          </div>
-
-          <div className="education-panel">
-            <div className="education-panel__hero">
-              <p className="education-panel__eyebrow">Study / practice / front-end craft</p>
-              <LayeredSectionTitle text="EDUCATION" />
-              <p className="education-panel__summary">
-                Academic training plus hands-on front-end practice focused on shipping responsive
-                interfaces that stay clean in production.
-              </p>
-            </div>
-
-            <div className="education-panel__list">
-              {portfolioData.education.map((item) => (
-                <article key={`${item.school}-${item.credential}`} className="education-card">
-                  <div className="education-card__meta">
-                    <p className="education-card__period">{item.period}</p>
-                    <p className="education-card__school">{item.school}</p>
-                  </div>
-                  <div className="education-card__body">
-                    <h3 className="education-card__credential">{item.credential}</h3>
-                    <p className="education-card__location">{item.location}</p>
-                    <p className="education-card__summary">{item.summary}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </MotionBlock>
-
-        <section className="lower-grid">
-          <MotionBlock
-            as="article"
-            className="poster-panel poster-panel--light animate-rise"
-            delay={0.04}
-            yDistance={14}
-          >
-            <div className="poster-panel__bar poster-panel__bar--light">
-              <span>Toolbox</span>
-              <span>Tech stack</span>
-            </div>
-            <div className="stack-grid">
-              {portfolioData.techStack.map((item) => (
-                <article key={item.name} className="stack-grid__item">
-                  <p className="stack-grid__name">{item.name}</p>
-                  <p className="stack-grid__kind">{item.kind}</p>
-                </article>
-              ))}
-            </div>
-          </MotionBlock>
-
-          <MotionBlock
-            as="article"
-            id="contact"
-            className="poster-panel poster-panel--accent animate-rise"
-            delay={0.08}
-            yDistance={18}
-            scaleAmount={0.014}
-          >
-            <div className="poster-panel__bar poster-panel__bar--light">
-              <span>Contact</span>
-              <span>Get in touch</span>
-            </div>
-            <div className="contact-panel">
-              <MotionLayer
-                as="h2"
-                className="contact-panel__title parallax-layer"
-                yDistance={26}
-              >
-                READY TO BUILD TOGETHER?
-              </MotionLayer>
-              <p className="contact-panel__text">
-                Available for freelance work involving React, front-end systems, responsive product
-                UI, and mobile-focused implementation.
-              </p>
-              <div className="contact-panel__actions">
-                <a href={portfolioData.contacts[0].href} className="action-link action-link-inverse">
-                  {portfolioData.contacts[0].label}
-                  <ArrowUpRightIcon />
-                </a>
-                <a
-                  href={portfolioData.contacts[1].href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="action-link"
-                >
-                  {portfolioData.contacts[1].label}
-                  <ArrowUpRightIcon />
-                </a>
-              </div>
-            </div>
-          </MotionBlock>
-        </section>
+              </MotionBlock>
+            </section>
           </>
         )}
       </main>
     </div>
-  )
+  );
 }
 
 type MetaBlockProps = {
-  label: string
-  value: string
-}
-
-type NavigationHandler = (event: MouseEvent<HTMLAnchorElement>, href: string) => void
+  label: string;
+  value: string;
+};
 
 type AppNavLinkProps = {
-  children: ReactNode
-  className?: string
-  href: string
-  onNavigate: NavigationHandler
-}
+  children: ReactNode;
+  className?: string;
+  href: string;
+  onClick?: () => void;
+};
 
-type MotionTag = 'div' | 'section' | 'article' | 'aside' | 'header'
-type MotionTextTag = 'div' | 'h1' | 'h2'
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+type MotionTag = "div" | "section" | "article" | "aside" | "header";
+type MotionTextTag = "div" | "h1" | "h2";
 
 type MotionBlockProps = {
-  as?: MotionTag
-  children: ReactNode
-  className?: string
-  delay?: number
-  eager?: boolean
-  id?: string
-  parallax?: boolean
-  scaleAmount?: number
-  style?: CSSProperties
-  xDistance?: number
-  yDistance?: number
-}
+  as?: MotionTag;
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  eager?: boolean;
+  id?: string;
+  parallax?: boolean;
+  scaleAmount?: number;
+  style?: CSSProperties;
+  xDistance?: number;
+  yDistance?: number;
+};
 
 type MotionLayerProps = {
-  as?: MotionTextTag
-  children?: ReactNode
-  className?: string
-  parallax?: boolean
-  rotateDistance?: number
-  scaleAmount?: number
-  style?: CSSProperties
-  xDistance?: number
-  yDistance?: number
-}
+  as?: MotionTextTag;
+  children?: ReactNode;
+  className?: string;
+  parallax?: boolean;
+  rotateDistance?: number;
+  scaleAmount?: number;
+  style?: CSSProperties;
+  xDistance?: number;
+  yDistance?: number;
+};
 
 const motionBlocks = {
   article: motion.article,
@@ -630,24 +827,24 @@ const motionBlocks = {
   div: motion.div,
   header: motion.header,
   section: motion.section,
-}
+};
 
 const motionText = {
   div: motion.div,
   h1: motion.h1,
   h2: motion.h2,
-}
+};
 
-function AppNavLink({ children, className, href, onNavigate }: AppNavLinkProps) {
+function AppNavLink({ children, className, href, onClick }: AppNavLinkProps) {
   return (
-    <a href={href} className={className} onClick={(event) => onNavigate(event, href)}>
+    <a href={href} className={className} onClick={onClick}>
       {children}
     </a>
-  )
+  );
 }
 
 function MotionBlock({
-  as = 'div',
+  as = "div",
   children,
   className,
   delay = 0,
@@ -659,25 +856,27 @@ function MotionBlock({
   xDistance = 0,
   yDistance = 18,
 }: MotionBlockProps) {
-  const Component = motionBlocks[as] as ElementType
-  const shouldReduceMotion = useReducedMotion()
-  const ref = useRef(null)
+  const Component = motionBlocks[as] as ElementType;
+  const shouldReduceMotion = useReducedMotion();
+  const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ['start end', 'end start'],
-  })
-  const blockX = shouldReduceMotion || !parallax ? 0 : xDistance
-  const blockY = shouldReduceMotion || !parallax ? 0 : yDistance
-  const blockScale = shouldReduceMotion || !parallax ? 0 : scaleAmount
+    offset: ["start end", "end start"],
+  });
+  const blockX = shouldReduceMotion || !parallax ? 0 : xDistance;
+  const blockY = shouldReduceMotion || !parallax ? 0 : yDistance;
+  const blockScale = shouldReduceMotion || !parallax ? 0 : scaleAmount;
 
-  const x = useTransform(scrollYProgress, [0, 1], [blockX, -blockX])
-  const y = useTransform(scrollYProgress, [0, 1], [blockY, -blockY])
+  const x = useTransform(scrollYProgress, [0, 1], [blockX, -blockX]);
+  const y = useTransform(scrollYProgress, [0, 1], [blockY, -blockY]);
   const scale = useTransform(
     scrollYProgress,
     [0, 0.5, 1],
     [1 + blockScale, 1, 1 + blockScale * 0.35],
-  )
-  const revealTarget = shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
+  );
+  const revealTarget = shouldReduceMotion
+    ? undefined
+    : { opacity: 1, y: 0, scale: 1 };
 
   return (
     <Component
@@ -697,11 +896,11 @@ function MotionBlock({
     >
       {children}
     </Component>
-  )
+  );
 }
 
 function MotionLayer({
-  as = 'div',
+  as = "div",
   children,
   className,
   parallax = true,
@@ -711,32 +910,40 @@ function MotionLayer({
   xDistance = 0,
   yDistance = 18,
 }: MotionLayerProps) {
-  const Component = motionText[as] as ElementType
-  const shouldReduceMotion = useReducedMotion()
-  const ref = useRef(null)
+  const Component = motionText[as] as ElementType;
+  const shouldReduceMotion = useReducedMotion();
+  const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ['start end', 'end start'],
-  })
-  const layerX = shouldReduceMotion || !parallax ? 0 : xDistance
-  const layerY = shouldReduceMotion || !parallax ? 0 : yDistance
-  const layerRotate = shouldReduceMotion || !parallax ? 0 : rotateDistance
-  const layerScale = shouldReduceMotion || !parallax ? 0 : scaleAmount
+    offset: ["start end", "end start"],
+  });
+  const layerX = shouldReduceMotion || !parallax ? 0 : xDistance;
+  const layerY = shouldReduceMotion || !parallax ? 0 : yDistance;
+  const layerRotate = shouldReduceMotion || !parallax ? 0 : rotateDistance;
+  const layerScale = shouldReduceMotion || !parallax ? 0 : scaleAmount;
 
-  const x = useTransform(scrollYProgress, [0, 1], [layerX, -layerX])
-  const y = useTransform(scrollYProgress, [0, 1], [layerY, -layerY])
-  const rotate = useTransform(scrollYProgress, [0, 1], [layerRotate, -layerRotate])
+  const x = useTransform(scrollYProgress, [0, 1], [layerX, -layerX]);
+  const y = useTransform(scrollYProgress, [0, 1], [layerY, -layerY]);
+  const rotate = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [layerRotate, -layerRotate],
+  );
   const scale = useTransform(
     scrollYProgress,
     [0, 0.5, 1],
     [1 + layerScale, 1, 1 + layerScale * 0.25],
-  )
+  );
 
   return (
-    <Component ref={ref} className={className} style={{ ...style, x, y, rotate, scale }}>
+    <Component
+      ref={ref}
+      className={className}
+      style={{ ...style, x, y, rotate, scale }}
+    >
       {children}
     </Component>
-  )
+  );
 }
 
 function MetaBlock({ label, value }: MetaBlockProps) {
@@ -745,13 +952,13 @@ function MetaBlock({ label, value }: MetaBlockProps) {
       <p className="meta-grid__label">{label}</p>
       <p className="meta-grid__value">{value}</p>
     </article>
-  )
+  );
 }
 
 type FactChipProps = {
-  label: string
-  value: string
-}
+  label: string;
+  value: string;
+};
 
 function AboutMetric({ label, value }: FactChipProps) {
   return (
@@ -759,7 +966,7 @@ function AboutMetric({ label, value }: FactChipProps) {
       <p className="about-sheet__metric-label">{label}</p>
       <p className="about-sheet__metric-value">{value}</p>
     </article>
-  )
+  );
 }
 
 function ArrowUpRightIcon() {
@@ -778,7 +985,7 @@ function ArrowUpRightIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  )
+  );
 }
 
 function LayeredSectionTitle({ text }: { text: string }) {
@@ -787,10 +994,10 @@ function LayeredSectionTitle({ text }: { text: string }) {
       <span className="education-wordmark__depth">{text}</span>
       <span className="education-wordmark__fill">{text}</span>
     </div>
-  )
+  );
 }
 
-function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
+function ProjectsPage() {
   return (
     <div className="projects-page">
       <section className="projects-overview">
@@ -815,15 +1022,18 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
                 Product, interface, and front-end work collected in one place.
               </MotionLayer>
               <p className="projects-hero__text">
-                A compact project directory showing the kind of product UI, prototype work, and
-                responsive implementation I take from brief to polished delivery.
+                A compact project directory showing the kind of product UI,
+                prototype work, and responsive implementation I take from brief
+                to polished delivery.
               </p>
             </div>
 
             <div className="projects-hero__meta">
               <div className="projects-hero__stat">
                 <p className="projects-hero__stat-label">Listed projects</p>
-                <p className="projects-hero__stat-value">{portfolioData.projects.length}</p>
+                <p className="projects-hero__stat-value">
+                  {portfolioData.projects.length}
+                </p>
               </div>
               <div className="projects-hero__tags">
                 <span className="outline-chip">Responsive UI</span>
@@ -843,7 +1053,7 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
       >
         <div className="poster-panel__bar poster-panel__bar--light">
           <span>Project directory</span>
-          <AppNavLink href={HOME_PATH} className="panel-link" onNavigate={onNavigate}>
+          <AppNavLink href={HOME_HREF} className="panel-link">
             Back home
           </AppNavLink>
         </div>
@@ -874,20 +1084,75 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
         </div>
       </MotionBlock>
     </div>
-  )
+  );
 }
 
 function normalizePath(path: string) {
-  const trimmed = path.replace(/\/+$/, '')
-  return trimmed === '' ? HOME_PATH : trimmed
+  const trimmed = path.replace(/\/+$/, "");
+  return trimmed === "" ? HOME_PATH : trimmed;
 }
 
 function getCurrentPath() {
-  if (typeof window === 'undefined') {
-    return HOME_PATH
+  if (typeof window === "undefined") {
+    return HOME_PATH;
   }
 
-  return normalizePath(window.location.pathname)
+  return (
+    getRouteFromHash(window.location.hash) ??
+    getRouteFromPathname(window.location.pathname)
+  );
 }
 
-export default App
+function getCurrentAnchor() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return getAnchorFromHash(window.location.hash);
+}
+
+function getSectionHref(sectionId: string) {
+  return `${HOME_HREF}#${sectionId}`;
+}
+
+function getPrimaryNavItems(pathname: string): NavItem[] {
+  if (pathname === PROJECTS_PATH) {
+    return [
+      { href: HOME_HREF, label: "About" },
+      { href: PROJECTS_HREF, label: "Projects" },
+      { href: getSectionHref("contact"), label: "Contact" },
+    ];
+  }
+
+  return [
+    { href: HOME_HREF, label: "About" },
+    { href: getSectionHref("work"), label: "Works" },
+    { href: PROJECTS_HREF, label: "Projects" },
+    { href: getSectionHref("services"), label: "Service" },
+    { href: getSectionHref("contact"), label: "Contact" },
+  ];
+}
+
+function getRouteFromHash(hash: string) {
+  if (!hash.startsWith("#/")) {
+    return null;
+  }
+
+  return normalizePath(hash.slice(1));
+}
+
+function getAnchorFromHash(hash: string) {
+  if (!hash.startsWith("#") || hash.startsWith("#/")) {
+    return null;
+  }
+
+  const anchor = hash.slice(1);
+  return anchor === "" ? null : decodeURIComponent(anchor);
+}
+
+function getRouteFromPathname(pathname: string) {
+  const normalized = normalizePath(pathname);
+  return normalized.endsWith(PROJECTS_PATH) ? PROJECTS_PATH : HOME_PATH;
+}
+
+export default App;
