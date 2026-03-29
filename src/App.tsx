@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ElementType, type MouseEvent, type ReactNode } from 'react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { portfolioData } from './portfolio'
 
 const HOME_PATH = '/'
@@ -9,95 +10,15 @@ const [featuredProject, ...moreProjects] = portfolioData.projects
 function App() {
   const [pathname, setPathname] = useState(() => getCurrentPath())
 
-  const updateParallax = useEffectEvent(() => {
-    const viewportHeight = window.innerHeight || 1
-
-    document.querySelectorAll<HTMLElement>('[data-parallax], [data-parallax-layer]').forEach((element) => {
-      const speed = Number(element.dataset.parallaxSpeed ?? '0.14')
-      const rotate = Number(element.dataset.parallaxRotate ?? '0')
-      const scale = Number(element.dataset.parallaxScale ?? '0')
-      const axis = element.dataset.parallaxAxis ?? 'y'
-      const rect = element.getBoundingClientRect()
-      const offsetFromCenter = viewportHeight / 2 - (rect.top + rect.height / 2)
-      const progress = Math.max(-1.2, Math.min(1.2, offsetFromCenter / viewportHeight))
-
-      const shiftY = axis.includes('y') ? progress * speed * 64 : 0
-      const shiftX = axis.includes('x') ? progress * speed * 42 : 0
-      const tilt = progress * rotate
-      const zoom = 1 + Math.abs(progress) * scale
-
-      element.style.setProperty('--parallax-shift', `${shiftY.toFixed(2)}px`)
-      element.style.setProperty('--parallax-shift-x', `${shiftX.toFixed(2)}px`)
-      element.style.setProperty('--parallax-rotate', `${tilt.toFixed(2)}deg`)
-      element.style.setProperty('--parallax-scale', zoom.toFixed(3))
-    })
-  })
-
   useEffect(() => {
     const handlePopState = () => setPathname(getCurrentPath())
 
     window.addEventListener('popstate', handlePopState)
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const revealElements = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
-
-    if (reduceMotion) {
-      revealElements.forEach((element) => {
-        element.classList.add('is-visible')
-        element.style.setProperty('--parallax-shift', '0px')
-      })
-      return () => {
-        window.removeEventListener('popstate', handlePopState)
-      }
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            return
-          }
-
-          entry.target.classList.add('is-visible')
-          observer.unobserve(entry.target)
-        })
-      },
-      {
-        threshold: 0.18,
-        rootMargin: '0px 0px -8% 0px',
-      },
-    )
-
-    revealElements.forEach((element) => observer.observe(element))
-
-    let frameId = 0
-
-    const requestParallaxUpdate = () => {
-      if (frameId !== 0) {
-        return
-      }
-
-      frameId = window.requestAnimationFrame(() => {
-        updateParallax()
-        frameId = 0
-      })
-    }
-
-    requestParallaxUpdate()
-    window.addEventListener('scroll', requestParallaxUpdate, { passive: true })
-    window.addEventListener('resize', requestParallaxUpdate)
-
     return () => {
-      observer.disconnect()
       window.removeEventListener('popstate', handlePopState)
-      window.removeEventListener('scroll', requestParallaxUpdate)
-      window.removeEventListener('resize', requestParallaxUpdate)
-
-      if (frameId !== 0) {
-        window.cancelAnimationFrame(frameId)
-      }
     }
-  }, [pathname])
+  }, [])
 
   const handleInternalNavigation = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (
@@ -145,7 +66,7 @@ function App() {
         className="w-full flex min-h-screen flex-col gap-5 py-4"
         style={{ paddingInline: 'clamp(0.75rem, 8vw, 20rem)' }}
       >
-        <header className="topbar animate-rise" data-reveal style={revealStyle()}>
+        <MotionBlock as="header" className="topbar animate-rise" eager delay={0.04} parallax={false}>
           <div className="topbar__identity">
             <div className="monogram">MC</div>
             <div>
@@ -189,20 +110,21 @@ function App() {
               )}
             </nav>
           </div>
-        </header>
+        </MotionBlock>
 
         {pathname === PROJECTS_PATH ? (
           <ProjectsPage onNavigate={handleInternalNavigation} />
         ) : (
           <>
         <section className="hero-grid">
-          <article
+          <MotionBlock
+            as="article"
             className="poster-panel poster-panel--light dot-field animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.16"
-            data-parallax-scale="0.015"
-            style={revealStyle('70ms')}
+            eager
+            delay={0.04}
+            parallax={false}
+            yDistance={18}
+            scaleAmount={0.015}
           >
             <div className="poster-panel__inner">
               <div className="section-kicker">
@@ -212,18 +134,19 @@ function App() {
               </div>
 
               <p className="hero-code">MLJC / 2026 / PORTFOLIO</p>
-              <h1
+              <MotionLayer
+                as="h1"
                 className="hero-title parallax-layer"
-                data-parallax-layer
-                data-parallax-speed="0.42"
-                data-parallax-scale="0.02"
+                parallax={false}
+                yDistance={36}
+                scaleAmount={0.02}
               >
                 BUILD
                 <br />
                 WEB + MOBILE
                 <br />
                 PRODUCTS
-              </h1>
+              </MotionLayer>
 
               <div className="hero-caption">
                 <p className="hero-caption__small">Freelance developer</p>
@@ -231,16 +154,17 @@ function App() {
               </div>
 
               <div className="hero-lower">
-                <div
+                <MotionLayer
+                  as="div"
                   className="hero-stamp parallax-layer"
-                  data-parallax-layer
-                  data-parallax-speed="0.34"
-                  data-parallax-axis="xy"
-                  data-parallax-rotate="-2.2"
+                  parallax={false}
+                  yDistance={22}
+                  xDistance={8}
+                  rotateDistance={-0.8}
                 >
                   <span>{portfolioData.profile.yearsExperience}</span>
                   <span>Responsive builds / interface systems / production delivery</span>
-                </div>
+                </MotionLayer>
 
                 <div className="hero-summary">
                   <p>
@@ -265,15 +189,16 @@ function App() {
                 </div>
               </div>
             </div>
-          </article>
+          </MotionBlock>
 
-          <aside
+          <MotionBlock
+            as="aside"
             className="hero-side animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.22"
-            data-parallax-scale="0.012"
-            style={revealStyle('130ms')}
+            eager
+            delay={0.08}
+            parallax={false}
+            yDistance={24}
+            scaleAmount={0.012}
           >
             <article className="poster-panel poster-panel--dark">
               <div className="poster-panel__bar">
@@ -282,19 +207,20 @@ function App() {
               </div>
               <div className="poster-panel__inner">
                 <div className="profile-card">
-                  <div
+                  <MotionLayer
+                    as="div"
                     className="profile-card__art parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.4"
-                    data-parallax-axis="xy"
-                    data-parallax-rotate="2.5"
+                    parallax={false}
+                    yDistance={26}
+                    xDistance={10}
+                    rotateDistance={1.1}
                   >
                     <img
                       src="/marc.jpg"
                       alt="Portrait of Marc Lowel J. Castillo"
                       className="profile-card__photo"
                     />
-                  </div>
+                  </MotionLayer>
                   <div className="profile-card__body">
                     <p className="profile-card__label">Current focus</p>
                     <h2 className="profile-card__title">{portfolioData.profile.role}</h2>
@@ -324,15 +250,16 @@ function App() {
                 <p className="stat-split__text">{headlineStat.hint}</p>
               </div>
             </article>
-          </aside>
+          </MotionBlock>
         </section>
 
-        <section
+        <MotionBlock
+          as="section"
           className="marquee-panel animate-rise"
-          data-reveal
-          data-parallax
-          data-parallax-speed="0.1"
-          style={revealStyle('180ms')}
+          eager
+          delay={0.04}
+          parallax={false}
+          yDistance={10}
         >
           <div className="marquee-panel__inner">
             <div className="ticker-track">
@@ -346,16 +273,15 @@ function App() {
               <span>Mobile Interfaces</span>
             </div>
           </div>
-        </section>
+        </MotionBlock>
 
         <section id="work" className="editorial-grid">
-          <article
+          <MotionBlock
+            as="article"
             className="poster-panel poster-panel--dark animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.16"
-            data-parallax-scale="0.01"
-            style={revealStyle('240ms')}
+            delay={0.04}
+            yDistance={18}
+            scaleAmount={0.01}
           >
             <div className="poster-panel__bar">
               <span>Featured project</span>
@@ -382,39 +308,38 @@ function App() {
                 </div>
 
                 <div className="stacked-preview">
-                  <div
+                  <MotionLayer
+                    as="div"
                     className="stacked-preview__card stacked-preview__card--one parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.28"
-                    data-parallax-axis="xy"
-                    data-parallax-rotate="-4"
+                    yDistance={18}
+                    xDistance={8}
+                    rotateDistance={-2.5}
                   />
-                  <div
+                  <MotionLayer
+                    as="div"
                     className="stacked-preview__card stacked-preview__card--two parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.42"
-                    data-parallax-axis="xy"
-                    data-parallax-rotate="5"
+                    yDistance={28}
+                    xDistance={12}
+                    rotateDistance={3}
                   />
-                  <div
+                  <MotionLayer
+                    as="div"
                     className="stacked-preview__card stacked-preview__card--three parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.34"
-                    data-parallax-axis="xy"
-                    data-parallax-rotate="-3"
+                    yDistance={22}
+                    xDistance={10}
+                    rotateDistance={-2}
                   />
                 </div>
               </div>
             </div>
-          </article>
+          </MotionBlock>
 
           <div className="editorial-rail">
-            <article
+            <MotionBlock
+              as="article"
               className="poster-panel poster-panel--light animate-rise"
-              data-reveal
-              data-parallax
-              data-parallax-speed="0.24"
-              style={revealStyle('300ms')}
+              delay={0.06}
+              yDistance={24}
             >
               <div className="poster-panel__bar poster-panel__bar--light">
                 <span>Selected numbers</span>
@@ -430,14 +355,13 @@ function App() {
                   </div>
                 ))}
               </div>
-            </article>
+            </MotionBlock>
 
-            <article
+            <MotionBlock
+              as="article"
               className="poster-panel poster-panel--light animate-rise"
-              data-reveal
-              data-parallax
-              data-parallax-speed="0.28"
-              style={revealStyle('360ms')}
+              delay={0.1}
+              yDistance={28}
             >
               <div className="poster-panel__bar poster-panel__bar--light">
                 <span>More work</span>
@@ -456,18 +380,17 @@ function App() {
                   </article>
                 ))}
               </div>
-            </article>
+            </MotionBlock>
           </div>
         </section>
 
         <section id="services" className="services-grid">
-          <article
+          <MotionBlock
+            as="article"
             className="poster-panel poster-panel--light dot-field animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.15"
-            data-parallax-scale="0.01"
-            style={revealStyle('420ms')}
+            delay={0.04}
+            yDistance={16}
+            scaleAmount={0.01}
           >
             <div className="poster-panel__bar poster-panel__bar--light">
               <span>Service index</span>
@@ -477,9 +400,9 @@ function App() {
               <div className="service-stage__intro">
                 <p className="service-stage__eyebrow">Planning to production</p>
                 <div className="service-stage__summary-block">
-                  <h2 className="service-stage__title parallax-layer" data-parallax-layer data-parallax-speed="0.22">
+                  <MotionLayer as="h2" className="service-stage__title parallax-layer" yDistance={16}>
                     Strategy, interface design, prototypes, and front-end delivery.
-                  </h2>
+                  </MotionLayer>
                 </div>
               </div>
 
@@ -499,16 +422,15 @@ function App() {
                 </div>
               </div>
             </div>
-          </article>
+          </MotionBlock>
 
-          <article
+          <MotionBlock
+            as="article"
             id="about"
             className="poster-panel poster-panel--dark animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.2"
-            data-parallax-scale="0.012"
-            style={revealStyle('480ms')}
+            delay={0.08}
+            yDistance={20}
+            scaleAmount={0.012}
           >
             <div className="poster-panel__bar">
               <span>About</span>
@@ -521,41 +443,40 @@ function App() {
 
               <div className="about-sheet__layout">
                 <div className="about-sheet__main">
-                  <h2
+                  <MotionLayer
+                    as="h2"
                     className="about-sheet__title parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.22"
-                    data-parallax-scale="0.01"
+                    yDistance={20}
+                    scaleAmount={0.01}
                   >
                     Responsive product screens built cleanly and shipped with care.
-                  </h2>
+                  </MotionLayer>
                   <p className="about-sheet__lead">{portfolioData.profile.summary}</p>
                 </div>
 
                 <div className="about-sheet__rail">
-                  <div
+                  <MotionLayer
+                    as="div"
                     className="about-sheet__metrics parallax-layer"
-                    data-parallax-layer
-                    data-parallax-speed="0.16"
-                    data-parallax-axis="xy"
+                    yDistance={16}
+                    xDistance={10}
                   >
                     <AboutMetric label="Availability" value={portfolioData.profile.availability} />
                     <AboutMetric label="Experience" value={portfolioData.profile.yearsExperience} />
                     <AboutMetric label="Location" value={portfolioData.profile.location} />
-                  </div>
+                  </MotionLayer>
                 </div>
               </div>
             </div>
-          </article>
+          </MotionBlock>
         </section>
 
-        <section
+        <MotionBlock
+          as="section"
           id="education"
           className="poster-panel poster-panel--light animate-rise"
-          data-reveal
-          data-parallax
-          data-parallax-speed="0.13"
-          style={revealStyle('510ms')}
+          delay={0.04}
+          yDistance={14}
         >
           <div className="poster-panel__bar poster-panel__bar--light">
             <span>Education</span>
@@ -588,15 +509,14 @@ function App() {
               ))}
             </div>
           </div>
-        </section>
+        </MotionBlock>
 
         <section className="lower-grid">
-          <article
+          <MotionBlock
+            as="article"
             className="poster-panel poster-panel--light animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.14"
-            style={revealStyle('540ms')}
+            delay={0.04}
+            yDistance={14}
           >
             <div className="poster-panel__bar poster-panel__bar--light">
               <span>Toolbox</span>
@@ -610,29 +530,28 @@ function App() {
                 </article>
               ))}
             </div>
-          </article>
+          </MotionBlock>
 
-          <article
+          <MotionBlock
+            as="article"
             id="contact"
             className="poster-panel poster-panel--accent animate-rise"
-            data-reveal
-            data-parallax
-            data-parallax-speed="0.18"
-            data-parallax-scale="0.014"
-            style={revealStyle('600ms')}
+            delay={0.08}
+            yDistance={18}
+            scaleAmount={0.014}
           >
             <div className="poster-panel__bar poster-panel__bar--light">
               <span>Contact</span>
               <span>Get in touch</span>
             </div>
             <div className="contact-panel">
-              <h2
+              <MotionLayer
+                as="h2"
                 className="contact-panel__title parallax-layer"
-                data-parallax-layer
-                data-parallax-speed="0.34"
+                yDistance={26}
               >
                 READY TO BUILD TOGETHER?
-              </h2>
+              </MotionLayer>
               <p className="contact-panel__text">
                 Available for freelance work involving React, front-end systems, responsive product
                 UI, and mobile-focused implementation.
@@ -653,7 +572,7 @@ function App() {
                 </a>
               </div>
             </div>
-          </article>
+          </MotionBlock>
         </section>
           </>
         )}
@@ -676,10 +595,47 @@ type AppNavLinkProps = {
   onNavigate: NavigationHandler
 }
 
-function revealStyle(delay = '0ms'): CSSProperties {
-  return {
-    '--reveal-delay': delay,
-  } as CSSProperties
+type MotionTag = 'div' | 'section' | 'article' | 'aside' | 'header'
+type MotionTextTag = 'div' | 'h1' | 'h2'
+
+type MotionBlockProps = {
+  as?: MotionTag
+  children: ReactNode
+  className?: string
+  delay?: number
+  eager?: boolean
+  id?: string
+  parallax?: boolean
+  scaleAmount?: number
+  style?: CSSProperties
+  xDistance?: number
+  yDistance?: number
+}
+
+type MotionLayerProps = {
+  as?: MotionTextTag
+  children?: ReactNode
+  className?: string
+  parallax?: boolean
+  rotateDistance?: number
+  scaleAmount?: number
+  style?: CSSProperties
+  xDistance?: number
+  yDistance?: number
+}
+
+const motionBlocks = {
+  article: motion.article,
+  aside: motion.aside,
+  div: motion.div,
+  header: motion.header,
+  section: motion.section,
+}
+
+const motionText = {
+  div: motion.div,
+  h1: motion.h1,
+  h2: motion.h2,
 }
 
 function AppNavLink({ children, className, href, onNavigate }: AppNavLinkProps) {
@@ -687,6 +643,99 @@ function AppNavLink({ children, className, href, onNavigate }: AppNavLinkProps) 
     <a href={href} className={className} onClick={(event) => onNavigate(event, href)}>
       {children}
     </a>
+  )
+}
+
+function MotionBlock({
+  as = 'div',
+  children,
+  className,
+  delay = 0,
+  eager = false,
+  id,
+  parallax = true,
+  scaleAmount = 0,
+  style,
+  xDistance = 0,
+  yDistance = 18,
+}: MotionBlockProps) {
+  const Component = motionBlocks[as] as ElementType
+  const shouldReduceMotion = useReducedMotion()
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+  const blockX = shouldReduceMotion || !parallax ? 0 : xDistance
+  const blockY = shouldReduceMotion || !parallax ? 0 : yDistance
+  const blockScale = shouldReduceMotion || !parallax ? 0 : scaleAmount
+
+  const x = useTransform(scrollYProgress, [0, 1], [blockX, -blockX])
+  const y = useTransform(scrollYProgress, [0, 1], [blockY, -blockY])
+  const scale = useTransform(
+    scrollYProgress,
+    [0, 0.5, 1],
+    [1 + blockScale, 1, 1 + blockScale * 0.35],
+  )
+  const revealTarget = shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
+
+  return (
+    <Component
+      ref={ref}
+      id={id}
+      className={className}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
+      animate={eager ? revealTarget : undefined}
+      whileInView={eager ? undefined : revealTarget}
+      viewport={eager ? undefined : { once: true, amount: 0.5 }}
+      transition={{
+        duration: 0.9,
+        delay,
+        ease: [0.18, 0.88, 0.24, 1],
+      }}
+      style={{ ...style, x, y, scale }}
+    >
+      {children}
+    </Component>
+  )
+}
+
+function MotionLayer({
+  as = 'div',
+  children,
+  className,
+  parallax = true,
+  rotateDistance = 0,
+  scaleAmount = 0,
+  style,
+  xDistance = 0,
+  yDistance = 18,
+}: MotionLayerProps) {
+  const Component = motionText[as] as ElementType
+  const shouldReduceMotion = useReducedMotion()
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+  const layerX = shouldReduceMotion || !parallax ? 0 : xDistance
+  const layerY = shouldReduceMotion || !parallax ? 0 : yDistance
+  const layerRotate = shouldReduceMotion || !parallax ? 0 : rotateDistance
+  const layerScale = shouldReduceMotion || !parallax ? 0 : scaleAmount
+
+  const x = useTransform(scrollYProgress, [0, 1], [layerX, -layerX])
+  const y = useTransform(scrollYProgress, [0, 1], [layerY, -layerY])
+  const rotate = useTransform(scrollYProgress, [0, 1], [layerRotate, -layerRotate])
+  const scale = useTransform(
+    scrollYProgress,
+    [0, 0.5, 1],
+    [1 + layerScale, 1, 1 + layerScale * 0.25],
+  )
+
+  return (
+    <Component ref={ref} className={className} style={{ ...style, x, y, rotate, scale }}>
+      {children}
+    </Component>
   )
 }
 
@@ -745,12 +794,11 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
   return (
     <div className="projects-page">
       <section className="projects-overview">
-        <article
+        <MotionBlock
+          as="article"
           className="poster-panel poster-panel--dark animate-rise"
-          data-reveal
-          data-parallax
-          data-parallax-speed="0.14"
-          style={revealStyle('70ms')}
+          delay={0.04}
+          yDistance={14}
         >
           <div className="poster-panel__bar">
             <span>Projects</span>
@@ -759,13 +807,13 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
           <div className="projects-hero">
             <div className="projects-hero__copy">
               <p className="projects-hero__eyebrow">Archive</p>
-              <h1
+              <MotionLayer
+                as="h1"
                 className="projects-hero__title parallax-layer"
-                data-parallax-layer
-                data-parallax-speed="0.24"
+                yDistance={18}
               >
                 Product, interface, and front-end work collected in one place.
-              </h1>
+              </MotionLayer>
               <p className="projects-hero__text">
                 A compact project directory showing the kind of product UI, prototype work, and
                 responsive implementation I take from brief to polished delivery.
@@ -784,15 +832,14 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
               </div>
             </div>
           </div>
-        </article>
+        </MotionBlock>
       </section>
 
-      <section
+      <MotionBlock
+        as="section"
         className="poster-panel poster-panel--light animate-rise"
-        data-reveal
-        data-parallax
-        data-parallax-speed="0.12"
-        style={revealStyle('140ms')}
+        delay={0.08}
+        yDistance={12}
       >
         <div className="poster-panel__bar poster-panel__bar--light">
           <span>Project directory</span>
@@ -825,7 +872,7 @@ function ProjectsPage({ onNavigate }: { onNavigate: NavigationHandler }) {
             </article>
           ))}
         </div>
-      </section>
+      </MotionBlock>
     </div>
   )
 }

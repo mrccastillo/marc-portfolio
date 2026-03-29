@@ -101,11 +101,13 @@ button {
 }
 
 .topbar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 2px solid var(--soft-line);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   padding: 1rem 1.25rem;
@@ -119,6 +121,19 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.9rem;
+  min-width: 0;
+}
+
+.topbar__identity {
+  min-width: 0;
+}
+
+.topbar__actions {
+  justify-self: end;
+}
+
+.topbar__nav {
+  justify-content: flex-end;
 }
 
 .monogram {
@@ -137,6 +152,7 @@ button {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
+  min-width: 0;
 }
 
 .topbar__meta {
@@ -396,6 +412,7 @@ button {
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+  transform: none;
 }
 
 .hero-summary {
@@ -1291,57 +1308,25 @@ button {
 }
 
 .animate-rise {
-  --reveal-delay: 0ms;
-  --reveal-shift: 2rem;
-  --reveal-scale: 0.985;
-  --parallax-shift: 0px;
-  --parallax-shift-x: 0px;
-  --parallax-rotate: 0deg;
-  --parallax-scale: 1;
-  opacity: 0;
-  transform:
-    translate3d(
-      var(--parallax-shift-x),
-      calc(var(--reveal-shift) + var(--parallax-shift)),
-      0
-    )
-    rotate(var(--parallax-rotate))
-    scale(calc(var(--reveal-scale) * var(--parallax-scale)));
-  transition:
-    opacity 720ms ease,
-    transform 900ms cubic-bezier(0.18, 0.88, 0.24, 1);
-  transition-delay: var(--reveal-delay);
-  will-change: transform, opacity;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
 .animate-rise.is-visible {
-  --reveal-shift: 0px;
-  --reveal-scale: 1;
   opacity: 1;
+  transform: none;
 }
 
 .parallax-layer {
-  --parallax-shift: 0px;
-  --parallax-shift-x: 0px;
-  --parallax-rotate: 0deg;
-  --parallax-scale: 1;
-  transform:
-    translate3d(var(--parallax-shift-x), var(--parallax-shift), 0)
-    rotate(var(--parallax-rotate))
-    scale(var(--parallax-scale));
+  transform: none;
   transform-origin: center center;
-  will-change: transform;
+  will-change: auto;
 }
 
 .stacked-preview__card.parallax-layer {
-  transform:
-    translate3d(
-      calc(var(--stack-x) + var(--parallax-shift-x)),
-      calc(var(--stack-y) + var(--parallax-shift)),
-      0
-    )
-    rotate(calc(var(--stack-rotate) + var(--parallax-rotate)))
-    scale(var(--parallax-scale));
+  transform: translate3d(var(--stack-x), var(--stack-y), 0) rotate(var(--stack-rotate));
 }
 
 @keyframes ticker {
@@ -1421,6 +1406,10 @@ button {
   .about-sheet,
   .contact-panel {
     padding: 1.1rem;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
   }
 
   .service-stage {
