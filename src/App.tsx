@@ -136,7 +136,7 @@ function App() {
           <div className="topbar__identity">
             <div className="monogram">
               <img
-                src="./logo-white.png"
+                src="/logo-white.png"
                 alt="Marc Lowel J. Castillo logo"
                 className="monogram__image"
               />
@@ -372,7 +372,7 @@ function App() {
                         </p>
                         <div className="profile-card__actions">
                           <a
-                            href="./CASTILLO - CV.pdf"
+                            href="/CASTILLO - CV.pdf"
                             download
                             className="action-link"
                           >
@@ -501,7 +501,7 @@ function App() {
                         rotateDistance={0}
                       >
                         <img
-                          src="./lk.png"
+                          src="/lk.png"
                           alt="Laundry King MNL website preview"
                           className="stacked-preview__image"
                         />
@@ -1017,12 +1017,12 @@ function ProfileSpotlightImage() {
         onMouseLeave={handlePointerLeave}
       >
         <img
-          src="./marc-2.jpg"
+        src="/marc-2.jpg"
           alt="Portrait of Marc Lowel J. Castillo"
           className="profile-card__photo profile-card__photo--base"
         />
         <img
-          src="./marc-2.jpg"
+        src="/marc-2.jpg"
           alt=""
           aria-hidden="true"
           className="profile-card__photo profile-card__photo--color"
