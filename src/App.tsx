@@ -394,7 +394,7 @@ function App() {
 
                     <div className="meta-grid">
                       <MetaBlock label="Availability" value="Open" />
-                      <MetaBlock label="Work" value="Client commissions" />
+                      <MetaBlock label="Work" value="Part time / Internship" />
                       <MetaBlock label="Primary" value="Web + Mobile" />
                       <MetaBlock label="Base" value="Manila" />
                     </div>
