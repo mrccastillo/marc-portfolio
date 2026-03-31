@@ -21,6 +21,7 @@ const HOME_HREF = "./";
 const PROJECTS_HREF = "./#/projects";
 const [headlineStat, ...supportingStats] = portfolioData.stats;
 const [featuredProject, ...moreProjects] = portfolioData.projects;
+const homeMoreProjects = moreProjects.slice(0, 1);
 
 function App() {
   const [pathname, setPathname] = useState(() => getCurrentPath());
@@ -327,7 +328,7 @@ function App() {
                 yDistance={24}
                 scaleAmount={0.012}
               >
-                <article className="poster-panel poster-panel--dark">
+                <article className="poster-panel poster-panel--dark poster-panel--borderless">
                   <div className="poster-panel__bar">
                     <span>Profile sheet</span>
                     <span>{portfolioData.profile.location}</span>
@@ -360,7 +361,7 @@ function App() {
                         </p>
                         <div className="profile-card__actions">
                           <a
-                            href="./marc-cv.pdf"
+                            href="./CASTILLO - CV.pdf"
                             download
                             className="action-link"
                           >
@@ -395,7 +396,10 @@ function App() {
                     <span>{headlineStat.label}</span>
                   </div>
                   <div className="stat-split">
-                    <p className="stat-split__number">{headlineStat.value}</p>
+                    <AnimatedStatValue
+                      className="stat-split__number"
+                      value={headlineStat.value}
+                    />
                     <p className="stat-split__text">{headlineStat.hint}</p>
                   </div>
                 </article>
@@ -427,8 +431,9 @@ function App() {
             <section id="work" className="editorial-grid">
               <MotionBlock
                 as="article"
-                className="poster-panel poster-panel--dark animate-rise"
+                className="poster-panel poster-panel--dark poster-panel--borderless animate-rise"
                 delay={0.04}
+                parallax={false}
                 yDistance={18}
                 scaleAmount={0.01}
               >
@@ -452,6 +457,19 @@ function App() {
                         </span>
                       ))}
                     </div>
+                    {featuredProject.href ? (
+                      <div className="feature-actions">
+                        <a
+                          href={featuredProject.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="action-link action-link-outline-light feature-visit-link"
+                        >
+                          {featuredProject.linkLabel ?? "Visit site"}
+                          <ArrowUpRightIcon />
+                        </a>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="feature-impact">
@@ -465,25 +483,18 @@ function App() {
                     <div className="stacked-preview">
                       <MotionLayer
                         as="div"
-                        className="stacked-preview__card stacked-preview__card--one parallax-layer"
-                        yDistance={18}
-                        xDistance={8}
-                        rotateDistance={-2.5}
-                      />
-                      <MotionLayer
-                        as="div"
-                        className="stacked-preview__card stacked-preview__card--two parallax-layer"
-                        yDistance={28}
-                        xDistance={12}
-                        rotateDistance={3}
-                      />
-                      <MotionLayer
-                        as="div"
-                        className="stacked-preview__card stacked-preview__card--three parallax-layer"
-                        yDistance={22}
-                        xDistance={10}
-                        rotateDistance={-2}
-                      />
+                        className="stacked-preview__card stacked-preview__card--solo parallax-layer"
+                        parallax={false}
+                        yDistance={0}
+                        xDistance={0}
+                        rotateDistance={0}
+                      >
+                        <img
+                          src="./lk.png"
+                          alt="Laundry King MNL website preview"
+                          className="stacked-preview__image"
+                        />
+                      </MotionLayer>
                     </div>
                   </div>
                 </div>
@@ -494,6 +505,7 @@ function App() {
                   as="article"
                   className="poster-panel poster-panel--light animate-rise"
                   delay={0.06}
+                  parallax={false}
                   yDistance={24}
                 >
                   <div className="poster-panel__bar poster-panel__bar--light">
@@ -516,6 +528,7 @@ function App() {
                   as="article"
                   className="poster-panel poster-panel--light animate-rise"
                   delay={0.1}
+                  parallax={false}
                   yDistance={28}
                 >
                   <div className="poster-panel__bar poster-panel__bar--light">
@@ -525,12 +538,22 @@ function App() {
                     </AppNavLink>
                   </div>
                   <div className="work-list">
-                    {moreProjects.map((project, index) => (
+                    {homeMoreProjects.map((project, index) => (
                       <article key={project.name} className="work-list__item">
                         <p className="work-list__index">0{index + 2}</p>
-                        <div>
+                        <div className="work-list__meta">
                           <h3 className="work-list__title">{project.name}</h3>
                           <p className="work-list__text">{project.summary}</p>
+                          {project.href ? (
+                            <a
+                              href={project.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="panel-link"
+                            >
+                              {project.linkLabel ?? "Visit site"}
+                            </a>
+                          ) : null}
                         </div>
                       </article>
                     ))}
@@ -596,7 +619,7 @@ function App() {
               <MotionBlock
                 as="article"
                 id="about"
-                className="poster-panel poster-panel--dark animate-rise"
+                className="poster-panel poster-panel--dark poster-panel--borderless animate-rise"
                 delay={0.08}
                 yDistance={20}
                 scaleAmount={0.012}
@@ -620,31 +643,31 @@ function App() {
                         yDistance={20}
                         scaleAmount={0.01}
                       >
-                        Responsive product screens built cleanly and shipped
-                        with care.
+                        Turning code into revenue, users, and wins.
                       </MotionLayer>
                       <p className="about-sheet__lead">
-                        {portfolioData.profile.summary}
+                        Driven by current products generating consistent
+                        revenue, engaging a growing user base, and delivering
+                        competitive wins through rapid execution.
                       </p>
                     </div>
 
-                    <div className="about-sheet__rail">
-                      <MotionLayer
-                        as="div"
-                        className="about-sheet__metrics parallax-layer"
-                        yDistance={16}
-                        xDistance={10}
-                      >
-                        {portfolioData.aboutHighlights.map((item) => (
-                          <AboutMetric
-                            key={item.label}
-                            label={item.label}
-                            value={item.value}
-                          />
-                        ))}
-                      </MotionLayer>
-                    </div>
                   </div>
+
+                  <MotionLayer
+                    as="div"
+                    className="about-sheet__stats parallax-layer"
+                    yDistance={16}
+                    xDistance={10}
+                  >
+                    {portfolioData.aboutHighlights.map((item) => (
+                      <AboutStat
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                      />
+                    ))}
+                  </MotionLayer>
                 </div>
               </MotionBlock>
             </section>
@@ -955,17 +978,237 @@ function MetaBlock({ label, value }: MetaBlockProps) {
   );
 }
 
-type FactChipProps = {
+type AboutStatProps = {
   label: string;
   value: string;
 };
 
-function AboutMetric({ label, value }: FactChipProps) {
+function AboutStat({ label, value }: AboutStatProps) {
+  const icon = getAboutStatIcon(label);
+
   return (
-    <article className="about-sheet__metric">
-      <p className="about-sheet__metric-label">{label}</p>
-      <p className="about-sheet__metric-value">{value}</p>
+    <article className="about-sheet__stat">
+      <div className="about-sheet__stat-top">
+        <span className="about-sheet__stat-icon" aria-hidden="true">
+          {icon}
+        </span>
+        <AnimatedStatValue className="about-sheet__stat-value" value={value} />
+      </div>
+      <p className="about-sheet__stat-label">{label}</p>
     </article>
+  );
+}
+
+type AnimatedStatValueProps = {
+  className?: string;
+  value: string;
+};
+
+function AnimatedStatValue({ className, value }: AnimatedStatValueProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  const [displayValue, setDisplayValue] = useState(() => {
+    const parsed = parseAnimatedStatValue(value);
+    return formatAnimatedStatValue(parsed, shouldReduceMotion ? parsed.number : 0);
+  });
+
+  useEffect(() => {
+    const parsed = parseAnimatedStatValue(value);
+
+    if (shouldReduceMotion) {
+      setDisplayValue(formatAnimatedStatValue(parsed, parsed.number));
+      return;
+    }
+
+    const target = ref.current;
+    if (!target || typeof window === "undefined") {
+      setDisplayValue(formatAnimatedStatValue(parsed, parsed.number));
+      return;
+    }
+
+    let frameId = 0;
+    let timeoutId = 0;
+    let hasAnimated = false;
+
+    const runAnimation = () => {
+      if (hasAnimated) {
+        return;
+      }
+
+      hasAnimated = true;
+      const startTime = performance.now();
+      const duration = 1100;
+
+      const tick = (currentTime: number) => {
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(parsed.number * eased);
+
+        setDisplayValue(formatAnimatedStatValue(parsed, currentValue));
+
+        if (progress < 1) {
+          frameId = window.requestAnimationFrame(tick);
+        }
+      };
+
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        observer.disconnect();
+        timeoutId = window.setTimeout(runAnimation, 80);
+      },
+      { threshold: 0.45 },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [shouldReduceMotion, value]);
+
+  return (
+    <p ref={ref} className={className}>
+      {displayValue}
+    </p>
+  );
+}
+
+type ParsedAnimatedStatValue = {
+  minimumDigits: number;
+  number: number;
+  prefix: string;
+  suffix: string;
+};
+
+function parseAnimatedStatValue(value: string): ParsedAnimatedStatValue {
+  const match = value.match(/^([^0-9]*)(\d+)(.*)$/);
+
+  if (!match) {
+    return {
+      minimumDigits: 0,
+      number: 0,
+      prefix: "",
+      suffix: value,
+    };
+  }
+
+  const [, prefix, digits, suffix] = match;
+
+  return {
+    minimumDigits: digits.length > 1 && digits.startsWith("0") ? digits.length : 0,
+    number: Number(digits),
+    prefix,
+    suffix,
+  };
+}
+
+function formatAnimatedStatValue(
+  parsed: ParsedAnimatedStatValue,
+  currentValue: number,
+) {
+  const digits =
+    parsed.minimumDigits > 0
+      ? String(currentValue).padStart(parsed.minimumDigits, "0")
+      : String(currentValue);
+
+  return `${parsed.prefix}${digits}${parsed.suffix}`;
+}
+
+function getAboutStatIcon(label: string) {
+  if (label === "Revenue generated") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" className="about-sheet__stat-icon-svg">
+        <path
+          d="M4 16L9 11L13 15L20 8"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M15 8H20V13"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (label === "Active users served") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" className="about-sheet__stat-icon-svg">
+        <path
+          d="M9 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M3.5 18.5A5.5 5.5 0 0 1 9 13h1"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M17 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M13.5 18.5A5.5 5.5 0 0 1 19 13h1.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="about-sheet__stat-icon-svg">
+      <path
+        d="M12 4v4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 7h12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 20h8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 9v3a4 4 0 1 0 8 0V9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -1035,6 +1278,20 @@ function ProjectsPage() {
                   {portfolioData.projects.length}
                 </p>
               </div>
+              <div className="projects-hero__archive-card">
+                <p className="projects-hero__archive-label">Archive includes</p>
+                <div className="projects-hero__archive-list">
+                  {portfolioData.projects.map((project, index) => (
+                    <div
+                      key={project.name}
+                      className="projects-hero__archive-item"
+                    >
+                      <span>0{index + 1}</span>
+                      <span>{project.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="projects-hero__tags">
                 <span className="outline-chip">Responsive UI</span>
                 <span className="outline-chip">Product work</span>
@@ -1078,6 +1335,18 @@ function ProjectsPage() {
               <div className="project-sheet__impact">
                 <p className="project-sheet__impact-label">Impact</p>
                 <p className="project-sheet__impact-text">{project.impact}</p>
+                {project.href ? (
+                  <div className="project-sheet__actions">
+                    <a
+                      href={project.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="panel-link"
+                    >
+                      {project.linkLabel ?? "Visit site"}
+                    </a>
+                  </div>
+                ) : null}
               </div>
             </article>
           ))}
