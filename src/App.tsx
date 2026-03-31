@@ -838,6 +838,7 @@ type MotionBlockProps = {
   parallax?: boolean;
   scaleAmount?: number;
   style?: CSSProperties;
+  viewportAmount?: number;
   xDistance?: number;
   yDistance?: number;
 };
@@ -886,6 +887,7 @@ function MotionBlock({
   parallax = true,
   scaleAmount = 0,
   style,
+  viewportAmount = 0.5,
   xDistance = 0,
   yDistance = 18,
 }: MotionBlockProps) {
@@ -919,7 +921,7 @@ function MotionBlock({
       initial={shouldReduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
       animate={eager ? revealTarget : undefined}
       whileInView={eager ? undefined : revealTarget}
-      viewport={eager ? undefined : { once: true, amount: 0.5 }}
+      viewport={eager ? undefined : { once: true, amount: viewportAmount }}
       transition={{
         duration: 0.9,
         delay,
@@ -1372,6 +1374,7 @@ function ProjectsPage() {
         as="section"
         className="poster-panel poster-panel--light animate-rise"
         delay={0.08}
+        viewportAmount={0.15}
         yDistance={12}
       >
         <div className="poster-panel__bar poster-panel__bar--light">
