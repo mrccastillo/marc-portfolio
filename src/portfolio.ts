@@ -194,7 +194,7 @@ export const portfolioData: PortfolioData = {
     {
       label: "Email",
       value: "marccastilo621@gmail.com",
-      href: "mailto:marccastilo621@gmail.com",
+      href: "https://mail.google.com/mail/?view=cm&fs=1&to=marccastilo621@gmail.com",
     },
     {
       label: "LinkedIn",
