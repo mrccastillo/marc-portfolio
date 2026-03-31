@@ -4,6 +4,7 @@ import {
   useState,
   type CSSProperties,
   type ElementType,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -62,9 +63,7 @@ function App() {
   }, [pathname]);
 
   useEffect(() => {
-    if (
-      typeof window === "undefined"
-    ) {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -126,9 +125,7 @@ function App() {
 
   return (
     <div className="page-shell">
-      <main
-        className="page-main w-full flex min-h-screen flex-col gap-5 py-4"
-      >
+      <main className="page-main w-full flex min-h-screen flex-col gap-5 py-4">
         <MotionBlock
           as="header"
           className="topbar animate-rise"
@@ -137,7 +134,13 @@ function App() {
           parallax={false}
         >
           <div className="topbar__identity">
-            <div className="monogram">MC</div>
+            <div className="monogram">
+              <img
+                src="./logo-white.png"
+                alt="Marc Lowel J. Castillo logo"
+                className="monogram__image"
+              />
+            </div>
             <div>
               <p className="topbar__name">Marc Lowel J. Castillo</p>
               <p className="topbar__meta">Web and Mobile Developer / Manila</p>
@@ -147,7 +150,11 @@ function App() {
           <div className="topbar__actions">
             <nav className="topbar__nav">
               {primaryNavItems.map((item) => (
-                <AppNavLink key={item.href} href={item.href} className="topbar__pill">
+                <AppNavLink
+                  key={item.href}
+                  href={item.href}
+                  className="topbar__pill"
+                >
                   {item.label}
                 </AppNavLink>
               ))}
@@ -155,7 +162,9 @@ function App() {
             <button
               type="button"
               className="topbar__menu-button"
-              aria-label={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-label={
+                isMobileMenuOpen ? "Close navigation" : "Open navigation"
+              }
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-nav-drawer"
               onClick={() => setIsMobileMenuOpen((open) => !open)}
@@ -239,21 +248,21 @@ function App() {
                   </div>
 
                   <p className="hero-code">MLJC / 2026 / PORTFOLIO</p>
-                      <MotionLayer
-                        as="h1"
-                        className="hero-title parallax-layer"
-                        parallax={false}
-                        yDistance={36}
-                        scaleAmount={0.02}
-                      >
-                        BUILD
-                        <br />
-                        WEB + MOBILE
-                        <br />
-                        PRODUCTS
-                      </MotionLayer>
+                  <MotionLayer
+                    as="h1"
+                    className="hero-title parallax-layer"
+                    parallax={false}
+                    yDistance={36}
+                    scaleAmount={0.02}
+                  >
+                    BUILD
+                    <br />
+                    WEB + MOBILE
+                    <br />
+                    PRODUCTS
+                  </MotionLayer>
 
-                      <div className="hero-caption">
+                  <div className="hero-caption">
                     <p className="hero-caption__small">Freelance developer</p>
                     <p className="hero-caption__small">
                       React / TypeScript / Responsive UI
@@ -303,15 +312,21 @@ function App() {
                       <div className="hero-notes">
                         <article className="hero-note">
                           <p className="hero-note__label">Front-end</p>
-                          <p className="hero-note__value">React JS / TypeScript</p>
+                          <p className="hero-note__value">
+                            React JS / TypeScript
+                          </p>
                         </article>
                         <article className="hero-note">
                           <p className="hero-note__label">Mobile</p>
-                          <p className="hero-note__value">React Native / Flutter</p>
+                          <p className="hero-note__value">
+                            React Native / Flutter
+                          </p>
                         </article>
                         <article className="hero-note">
                           <p className="hero-note__label">Workflow</p>
-                          <p className="hero-note__value">Responsive UI / Clean structure</p>
+                          <p className="hero-note__value">
+                            Responsive UI / Clean structure
+                          </p>
                         </article>
                       </div>
                     </div>
@@ -343,11 +358,7 @@ function App() {
                         xDistance={10}
                         rotateDistance={1.1}
                       >
-                        <img
-                          src="./marc-2.jpg"
-                          alt="Portrait of Marc Lowel J. Castillo"
-                          className="profile-card__photo"
-                        />
+                        <ProfileSpotlightImage />
                       </MotionLayer>
                       <div className="profile-card__body">
                         <p className="profile-card__label">Current focus</p>
@@ -651,7 +662,6 @@ function App() {
                         competitive wins through rapid execution.
                       </p>
                     </div>
-
                   </div>
 
                   <MotionLayer
@@ -978,6 +988,50 @@ function MetaBlock({ label, value }: MetaBlockProps) {
   );
 }
 
+function ProfileSpotlightImage() {
+  const handlePointerMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    event.currentTarget.style.setProperty("--spotlight-x", `${x}px`);
+    event.currentTarget.style.setProperty("--spotlight-y", `${y}px`);
+    event.currentTarget.style.setProperty("--spotlight-opacity", "1");
+  };
+
+  const handlePointerLeave = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.currentTarget.style.setProperty("--spotlight-opacity", "0");
+  };
+
+  return (
+    <a
+      href="https://www.facebook.com/marclowel.castillo/"
+      target="_blank"
+      rel="noreferrer"
+      className="profile-card__spotlight-link"
+    >
+      <div
+        className="profile-card__spotlight"
+        onMouseMove={handlePointerMove}
+        onMouseEnter={handlePointerMove}
+        onMouseLeave={handlePointerLeave}
+      >
+        <img
+          src="./marc-2.jpg"
+          alt="Portrait of Marc Lowel J. Castillo"
+          className="profile-card__photo profile-card__photo--base"
+        />
+        <img
+          src="./marc-2.jpg"
+          alt=""
+          aria-hidden="true"
+          className="profile-card__photo profile-card__photo--color"
+        />
+      </div>
+    </a>
+  );
+}
+
 type AboutStatProps = {
   label: string;
   value: string;
@@ -1009,7 +1063,10 @@ function AnimatedStatValue({ className, value }: AnimatedStatValueProps) {
   const ref = useRef<HTMLParagraphElement | null>(null);
   const [displayValue, setDisplayValue] = useState(() => {
     const parsed = parseAnimatedStatValue(value);
-    return formatAnimatedStatValue(parsed, shouldReduceMotion ? parsed.number : 0);
+    return formatAnimatedStatValue(
+      parsed,
+      shouldReduceMotion ? parsed.number : 0,
+    );
   });
 
   useEffect(() => {
@@ -1105,7 +1162,8 @@ function parseAnimatedStatValue(value: string): ParsedAnimatedStatValue {
   const [, prefix, digits, suffix] = match;
 
   return {
-    minimumDigits: digits.length > 1 && digits.startsWith("0") ? digits.length : 0,
+    minimumDigits:
+      digits.length > 1 && digits.startsWith("0") ? digits.length : 0,
     number: Number(digits),
     prefix,
     suffix,
@@ -1127,7 +1185,11 @@ function formatAnimatedStatValue(
 function getAboutStatIcon(label: string) {
   if (label === "Revenue generated") {
     return (
-      <svg viewBox="0 0 24 24" fill="none" className="about-sheet__stat-icon-svg">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="about-sheet__stat-icon-svg"
+      >
         <path
           d="M4 16L9 11L13 15L20 8"
           stroke="currentColor"
@@ -1148,7 +1210,11 @@ function getAboutStatIcon(label: string) {
 
   if (label === "Active users served") {
     return (
-      <svg viewBox="0 0 24 24" fill="none" className="about-sheet__stat-icon-svg">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="about-sheet__stat-icon-svg"
+      >
         <path
           d="M9 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"
           stroke="currentColor"
