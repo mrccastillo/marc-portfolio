@@ -1315,6 +1315,7 @@ function ProjectsPage() {
         <MotionBlock
           as="article"
           className="poster-panel poster-panel--dark animate-rise"
+          eager
           delay={0.04}
           yDistance={14}
         >
