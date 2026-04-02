@@ -294,6 +294,8 @@ function App() {
                       <div className="hero-actions">
                         <a
                           href={portfolioData.contacts[0].href}
+                          target="_blank"
+                          rel="noreferrer"
                           className="action-link action-link-inverse"
                         >
                           Email
